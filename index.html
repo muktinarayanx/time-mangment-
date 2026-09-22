@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study Management</title>
+    <!-- Use Inter font for a modern, clean look -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Study Management</h1>
+            <p class="subtitle">Track your daily study progress effortlessly.</p>
+        </header>
+
+        <!-- Stats Section -->
+        <section class="stats">
+            <div class="stat-card">
+                <h3>Total Records</h3>
+                <div class="value" id="total-count">0</div>
+            </div>
+            <div class="stat-card done-card">
+                <h3>Done</h3>
+                <div class="value" id="done-count">0</div>
+            </div>
+            <div class="stat-card undone-card">
+                <h3>Undone</h3>
+                <div class="value" id="undone-count">0</div>
+            </div>
+        </section>
+
+        <!-- Add Record Section -->
+        <section class="card">
+            <h2>Add Study Record</h2>
+            <form id="add-form">
+                <div class="input-group">
+                    <label for="date-input">Date</label>
+                    <input type="date" id="date-input" required>
+                </div>
+                <div class="input-group">
+                    <label for="subject-input">Subject</label>
+                    <input type="text" id="subject-input" placeholder="e.g. Mathematics, History..." required>
+                </div>
+                <div class="input-group">
+                    <label for="status-input">Status</label>
+                    <select id="status-input">
+                        <option value="Undone" selected>Undone</option>
+                        <option value="Done">Done</option>
+                    </select>
+                </div>
+                <div class="input-group btn-group">
+                    <label class="hidden-label">&nbsp;</label>
+                    <button type="submit" class="primary-btn">Add Record</button>
+                </div>
+            </form>
+        </section>
+
+        <!-- Records Table Section -->
+        <section class="card">
+            <div class="controls">
+                <div class="filter-group">
+                    <label for="filter-select">Filter:</label>
+                    <select id="filter-select">
+                        <option value="All">All</option>
+                        <option value="Done">Done</option>
+                        <option value="Undone">Undone</option>
+                    </select>
+                </div>
+                <button id="sort-btn" class="secondary-btn">Sort by Date &uarr;</button>
+            </div>
+            
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Subject</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body">
+                        <!-- Rows will be populated via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
