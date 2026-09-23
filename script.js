@@ -5,13 +5,13 @@ let records = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
 
 // DOM Elements
 const form = document.getElementById('add-form');
-const dateInput = document.getElementById('date-input');
 const subjectInput = document.getElementById('subject-input');
-const statusInput = document.getElementById('status-input');
-const tableBody = document.getElementById('table-body');
-const totalCount = document.getElementById('total-count');
-const doneCount = document.getElementById('done-count');
-const undoneCount = document.getElementById('undone-count');
+const entriesContainer = document.getElementById('entries-container');
+const addDateBtn = document.getElementById('add-date-btn');
+const recordsTable = document.getElementById('records-table');
+const addModal = document.getElementById('add-modal');
+const openModalBtn = document.getElementById('open-modal-btn');
+const closeModalBtn = document.getElementById('close-modal-btn');
 const filterSelect = document.getElementById('filter-select');
 const sortBtn = document.getElementById('sort-btn');
 
@@ -19,37 +19,106 @@ const sortBtn = document.getElementById('sort-btn');
 let currentFilter = 'All';
 let sortAsc = true;
 
-// Initialize app
-function init() {
-    // Set default date to today in YYYY-MM-DD
+// Helper: Get today's date
+function getTodayDate() {
     const today = new Date();
     const yyyy = today.getFullYear();
     const mm = String(today.getMonth() + 1).padStart(2, '0');
     const dd = String(today.getDate()).padStart(2, '0');
-    dateInput.value = `${yyyy}-${mm}-${dd}`;
-    
+    return `${yyyy}-${mm}-${dd}`;
+}
+
+// Initialize app
+function init() {
+    // Set default date to today for the first entry
+    const firstDateInput = document.querySelector('.date-input');
+    if (firstDateInput) {
+        firstDateInput.value = getTodayDate();
+    }
     render();
 }
 
-// Add new record
+// Dynamic form logic
+addDateBtn.addEventListener('click', () => {
+    const row = document.createElement('div');
+    row.className = 'entry-row';
+    row.innerHTML = `
+        <div class="input-group">
+            <label>Date</label>
+            <input type="date" class="date-input" value="${getTodayDate()}" required>
+        </div>
+        <div class="input-group">
+            <label>Status</label>
+            <select class="status-input">
+                <option value="Undone" selected>Undone</option>
+                <option value="Done">Done</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label class="hidden-label">&nbsp;</label>
+            <button type="button" class="secondary-btn remove-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+    `;
+    
+    // Add remove event listener
+    const removeBtn = row.querySelector('.remove-btn');
+    removeBtn.addEventListener('click', () => {
+        row.remove();
+        updateRemoveButtons();
+    });
+    
+    entriesContainer.appendChild(row);
+    updateRemoveButtons();
+});
+
+function updateRemoveButtons() {
+    const rows = entriesContainer.querySelectorAll('.entry-row');
+    const removeBtns = entriesContainer.querySelectorAll('.remove-btn');
+    if (rows.length === 1) {
+        if(removeBtns[0]) removeBtns[0].disabled = true;
+    } else {
+        removeBtns.forEach(btn => btn.disabled = false);
+    }
+}
+
+// Add new records
 form.addEventListener('submit', (e) => {
     e.preventDefault();
-    const newRecord = {
-        id: Date.now().toString(),
-        date: dateInput.value,
-        subject: subjectInput.value.trim(),
-        status: statusInput.value
-    };
+    const subject = subjectInput.value.trim();
+    if (!subject) return;
+
+    const rows = entriesContainer.querySelectorAll('.entry-row');
+    rows.forEach(row => {
+        const dateVal = row.querySelector('.date-input').value;
+        const statusVal = row.querySelector('.status-input').value;
+        
+        if (dateVal) {
+            records.push({
+                id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+                date: dateVal,
+                subject: subject,
+                status: statusVal
+            });
+        }
+    });
     
-    if (newRecord.subject === '') return;
-    
-    records.push(newRecord);
     save();
     render();
     
-    // Reset subject input for next entry
+    // Reset form
     subjectInput.value = '';
-    subjectInput.focus();
+    const extraRows = Array.from(rows).slice(1);
+    extraRows.forEach(r => r.remove());
+    const firstRow = entriesContainer.querySelector('.entry-row');
+    if(firstRow) {
+        firstRow.querySelector('.date-input').value = getTodayDate();
+        firstRow.querySelector('.status-input').value = 'Undone';
+    }
+    updateRemoveButtons();
+    
+    addModal.close();
 });
 
 // Delete record
@@ -84,29 +153,43 @@ function formatDate(dateStr) {
 
 // Render the UI
 function render() {
-    // Update stats
-    totalCount.textContent = records.length;
-    const done = records.filter(r => r.status === 'Done').length;
-    doneCount.textContent = done;
-    undoneCount.textContent = records.length - done;
-
     // Apply Filter
     let displayRecords = records;
     if (currentFilter !== 'All') {
         displayRecords = records.filter(r => r.status === currentFilter);
     }
 
-    // Apply Sort
-    displayRecords.sort((a, b) => {
-        if (a.date === b.date) return 0;
-        const result = a.date > b.date ? 1 : -1;
-        return sortAsc ? result : -result;
+    // Group by Subject
+    const grouped = {};
+    displayRecords.forEach(r => {
+        const lowerSub = r.subject.toLowerCase();
+        if (!grouped[lowerSub]) {
+            grouped[lowerSub] = {
+                originalSubject: r.subject,
+                entries: []
+            };
+        }
+        grouped[lowerSub].entries.push(r);
+    });
+
+    // Sort Subjects alphabetically
+    const sortedSubjects = Object.keys(grouped).sort((a, b) => a.localeCompare(b));
+
+    // Sort internal entries
+    sortedSubjects.forEach(sub => {
+        grouped[sub].entries.sort((a, b) => {
+            if (a.date === b.date) return 0;
+            const result = a.date > b.date ? 1 : -1;
+            return sortAsc ? result : -result;
+        });
     });
 
     // Render table rows
-    tableBody.innerHTML = '';
+    const existingTbodies = recordsTable.querySelectorAll('tbody');
+    existingTbodies.forEach(tb => tb.remove());
     
     if (displayRecords.length === 0) {
+        const tbody = document.createElement('tbody');
         const tr = document.createElement('tr');
         const td = document.createElement('td');
         td.colSpan = 4;
@@ -115,56 +198,86 @@ function render() {
         td.style.color = 'var(--text-muted)';
         td.style.padding = '2rem';
         tr.appendChild(td);
-        tableBody.appendChild(tr);
+        tbody.appendChild(tr);
+        recordsTable.appendChild(tbody);
         return;
     }
 
-    displayRecords.forEach(record => {
-        const tr = document.createElement('tr');
+    sortedSubjects.forEach(subKey => {
+        const group = grouped[subKey];
+        const entries = group.entries;
+        const rowspan = entries.length;
+
+        const tbody = document.createElement('tbody');
+
+        // Mobile header row (hidden on desktop)
+        const mobileHeaderTr = document.createElement('tr');
+        mobileHeaderTr.className = 'mobile-subject-header hide-desktop';
+        mobileHeaderTr.innerHTML = `<td colspan="4"><h3>${group.originalSubject}</h3></td>`;
+        tbody.appendChild(mobileHeaderTr);
+
+        // Mobile column header row (hidden on desktop)
+        const mobileColHeader = document.createElement('tr');
+        mobileColHeader.className = 'mobile-col-header hide-desktop';
+        mobileColHeader.innerHTML = `<td>Date</td><td>Status</td><td>Action</td>`;
+        tbody.appendChild(mobileColHeader);
+
+        entries.forEach((record, index) => {
+            const tr = document.createElement('tr');
+            
+            // Date Column
+            const dateTd = document.createElement('td');
+            dateTd.setAttribute('data-label', 'Date');
+            dateTd.textContent = formatDate(record.date);
+
+            // Subject Column (Only for the first entry, or hidden on desktop for subsequent entries)
+            const subjectTd = document.createElement('td');
+            subjectTd.setAttribute('data-label', 'Subject');
+            subjectTd.textContent = group.originalSubject;
+            subjectTd.style.fontWeight = '500';
+            
+            if (index === 0) {
+                subjectTd.rowSpan = rowspan;
+                subjectTd.classList.add('hide-mobile');
+            } else {
+                subjectTd.classList.add('hide-desktop', 'hide-mobile');
+            }
+
+            // Status Column
+            const statusTd = document.createElement('td');
+            statusTd.setAttribute('data-label', 'Status');
+            const statusBadge = document.createElement('span');
+            statusBadge.className = `status-badge ${record.status.toLowerCase()}`;
+            statusBadge.innerHTML = record.status === 'Done' ? '&#10003; Done' : '&#9711; Undone';
+            statusBadge.onclick = () => toggleStatus(record.id);
+            statusTd.appendChild(statusBadge);
+
+            // Action Column
+            const actionTd = document.createElement('td');
+            actionTd.setAttribute('data-label', 'Action');
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'delete-btn';
+            deleteBtn.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                </svg>
+                Delete
+            `;
+            deleteBtn.onclick = () => deleteRecord(record.id);
+            actionTd.appendChild(deleteBtn);
+
+            tr.appendChild(dateTd);
+            tr.appendChild(subjectTd);
+            tr.appendChild(statusTd);
+            tr.appendChild(actionTd);
+
+            tbody.appendChild(tr);
+        });
         
-        // Date Column
-        const dateTd = document.createElement('td');
-        dateTd.setAttribute('data-label', 'Date');
-        dateTd.textContent = formatDate(record.date);
-
-        // Subject Column
-        const subjectTd = document.createElement('td');
-        subjectTd.setAttribute('data-label', 'Subject');
-        subjectTd.textContent = record.subject;
-        subjectTd.style.fontWeight = '500';
-
-        // Status Column
-        const statusTd = document.createElement('td');
-        statusTd.setAttribute('data-label', 'Status');
-        const statusBadge = document.createElement('span');
-        statusBadge.className = `status-badge ${record.status.toLowerCase()}`;
-        statusBadge.innerHTML = record.status === 'Done' ? '&#10003; Done' : '&#9711; Undone';
-        statusBadge.onclick = () => toggleStatus(record.id);
-        statusTd.appendChild(statusBadge);
-
-        // Action Column
-        const actionTd = document.createElement('td');
-        actionTd.setAttribute('data-label', 'Action');
-        const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'delete-btn';
-        deleteBtn.innerHTML = `
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="3 6 5 6 21 6"></polyline>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                <line x1="10" y1="11" x2="10" y2="17"></line>
-                <line x1="14" y1="11" x2="14" y2="17"></line>
-            </svg>
-            Delete
-        `;
-        deleteBtn.onclick = () => deleteRecord(record.id);
-        actionTd.appendChild(deleteBtn);
-
-        tr.appendChild(dateTd);
-        tr.appendChild(subjectTd);
-        tr.appendChild(statusTd);
-        tr.appendChild(actionTd);
-
-        tableBody.appendChild(tr);
+        recordsTable.appendChild(tbody);
     });
 }
 
@@ -178,6 +291,27 @@ sortBtn.addEventListener('click', () => {
     sortAsc = !sortAsc;
     sortBtn.innerHTML = `Sort by Date ${sortAsc ? '&uarr;' : '&darr;'}`;
     render();
+});
+
+// Modal Logic
+openModalBtn.addEventListener('click', () => {
+    addModal.showModal();
+});
+
+closeModalBtn.addEventListener('click', () => {
+    addModal.close();
+});
+
+addModal.addEventListener('click', (e) => {
+    const dialogDimensions = addModal.getBoundingClientRect();
+    if (
+        e.clientX < dialogDimensions.left ||
+        e.clientX > dialogDimensions.right ||
+        e.clientY < dialogDimensions.top ||
+        e.clientY > dialogDimensions.bottom
+    ) {
+        addModal.close();
+    }
 });
 
 // Run init on load

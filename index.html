@@ -15,51 +15,47 @@
             <p class="subtitle">Track your daily study progress effortlessly.</p>
         </header>
 
-        <!-- Stats Section -->
-        <section class="stats">
-            <div class="stat-card">
-                <h3>Total Records</h3>
-                <div class="value" id="total-count">0</div>
+        <!-- Add Record Modal -->
+        <dialog id="add-modal" class="card modal">
+            <div class="modal-header">
+                <h2>Add Study Record</h2>
+                <button type="button" id="close-modal-btn" class="close-btn">&times;</button>
             </div>
-            <div class="stat-card done-card">
-                <h3>Done</h3>
-                <div class="value" id="done-count">0</div>
-            </div>
-            <div class="stat-card undone-card">
-                <h3>Undone</h3>
-                <div class="value" id="undone-count">0</div>
-            </div>
-        </section>
-
-        <!-- Add Record Section -->
-        <section class="card">
-            <h2>Add Study Record</h2>
             <form id="add-form">
-                <div class="input-group">
-                    <label for="date-input">Date</label>
-                    <input type="date" id="date-input" required>
-                </div>
                 <div class="input-group">
                     <label for="subject-input">Subject</label>
                     <input type="text" id="subject-input" placeholder="e.g. Mathematics, History..." required>
                 </div>
-                <div class="input-group">
-                    <label for="status-input">Status</label>
-                    <select id="status-input">
-                        <option value="Undone" selected>Undone</option>
-                        <option value="Done">Done</option>
-                    </select>
+                <div class="entries-container" id="entries-container">
+                    <div class="entry-row">
+                        <div class="input-group">
+                            <label>Date</label>
+                            <input type="date" class="date-input" required>
+                        </div>
+                        <div class="input-group">
+                            <label>Status</label>
+                            <select class="status-input">
+                                <option value="Undone" selected>Undone</option>
+                                <option value="Done">Done</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label class="hidden-label">&nbsp;</label>
+                            <button type="button" class="secondary-btn remove-btn" disabled>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <div class="input-group btn-group">
-                    <label class="hidden-label">&nbsp;</label>
-                    <button type="submit" class="primary-btn">Add Record</button>
-                </div>
+                <button type="button" id="add-date-btn" class="secondary-btn">+ Add another date</button>
+                <button type="submit" class="primary-btn" style="margin-top: 0.5rem;">Save Records</button>
             </form>
-        </section>
+        </dialog>
 
         <!-- Records Table Section -->
         <section class="card">
             <div class="controls">
+                <button id="open-modal-btn" class="primary-btn small-btn">+ Add Record</button>
                 <div class="filter-group">
                     <label for="filter-select">Filter:</label>
                     <select id="filter-select">
@@ -72,7 +68,7 @@
             </div>
             
             <div class="table-wrapper">
-                <table>
+                <table id="records-table">
                     <thead>
                         <tr>
                             <th>Date</th>
@@ -81,9 +77,7 @@
                             <th>Action</th>
                         </tr>
                     </thead>
-                    <tbody id="table-body">
-                        <!-- Rows will be populated via JS -->
-                    </tbody>
+                    <!-- tbodys will be populated via JS -->
                 </table>
             </div>
         </section>
