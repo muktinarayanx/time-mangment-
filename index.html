@@ -33,6 +33,10 @@
                             <input type="date" class="date-input" required>
                         </div>
                         <div class="input-group">
+                            <label>Subtopic <span class="optional-text">(Optional)</span></label>
+                            <input type="text" class="subtopic-input" placeholder="e.g. Algebra">
+                        </div>
+                        <div class="input-group">
                             <label>Status</label>
                             <select class="status-input">
                                 <option value="Undone" selected>Undone</option>
@@ -56,15 +60,7 @@
         <section class="card">
             <div class="controls">
                 <button id="open-modal-btn" class="primary-btn small-btn">+ Add Record</button>
-                <div class="filter-group">
-                    <label for="filter-select">Filter:</label>
-                    <select id="filter-select">
-                        <option value="All">All</option>
-                        <option value="Done">Done</option>
-                        <option value="Undone">Undone</option>
-                    </select>
-                </div>
-                <button id="sort-btn" class="secondary-btn">Sort by Date &uarr;</button>
+                <button id="toggle-today-btn" class="secondary-btn">Show Today's Tasks</button>
             </div>
             
             <div class="table-wrapper">
@@ -73,6 +69,7 @@
                         <tr>
                             <th>Date</th>
                             <th>Subject</th>
+                            <th>Subtopic</th>
                             <th>Status</th>
                             <th>Action</th>
                         </tr>

@@ -12,12 +12,10 @@ const recordsTable = document.getElementById('records-table');
 const addModal = document.getElementById('add-modal');
 const openModalBtn = document.getElementById('open-modal-btn');
 const closeModalBtn = document.getElementById('close-modal-btn');
-const filterSelect = document.getElementById('filter-select');
-const sortBtn = document.getElementById('sort-btn');
+const toggleTodayBtn = document.getElementById('toggle-today-btn');
 
 // State
-let currentFilter = 'All';
-let sortAsc = true;
+let showOnlyToday = false;
 
 // Helper: Get today's date
 function getTodayDate() {
@@ -46,6 +44,10 @@ addDateBtn.addEventListener('click', () => {
         <div class="input-group">
             <label>Date</label>
             <input type="date" class="date-input" value="${getTodayDate()}" required>
+        </div>
+        <div class="input-group">
+            <label>Subtopic <span class="optional-text">(Optional)</span></label>
+            <input type="text" class="subtopic-input" placeholder="e.g. Algebra">
         </div>
         <div class="input-group">
             <label>Status</label>
@@ -92,6 +94,7 @@ form.addEventListener('submit', (e) => {
     const rows = entriesContainer.querySelectorAll('.entry-row');
     rows.forEach(row => {
         const dateVal = row.querySelector('.date-input').value;
+        const subtopicVal = row.querySelector('.subtopic-input') ? row.querySelector('.subtopic-input').value.trim() : '';
         const statusVal = row.querySelector('.status-input').value;
         
         if (dateVal) {
@@ -99,6 +102,7 @@ form.addEventListener('submit', (e) => {
                 id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
                 date: dateVal,
                 subject: subject,
+                subtopic: subtopicVal,
                 status: statusVal
             });
         }
@@ -114,6 +118,7 @@ form.addEventListener('submit', (e) => {
     const firstRow = entriesContainer.querySelector('.entry-row');
     if(firstRow) {
         firstRow.querySelector('.date-input').value = getTodayDate();
+        if(firstRow.querySelector('.subtopic-input')) firstRow.querySelector('.subtopic-input').value = '';
         firstRow.querySelector('.status-input').value = 'Undone';
     }
     updateRemoveButtons();
@@ -153,10 +158,11 @@ function formatDate(dateStr) {
 
 // Render the UI
 function render() {
-    // Apply Filter
+    // Apply Filter for Today's Tasks
     let displayRecords = records;
-    if (currentFilter !== 'All') {
-        displayRecords = records.filter(r => r.status === currentFilter);
+    if (showOnlyToday) {
+        const today = getTodayDate();
+        displayRecords = records.filter(r => r.date === today);
     }
 
     // Group by Subject
@@ -175,12 +181,11 @@ function render() {
     // Sort Subjects alphabetically
     const sortedSubjects = Object.keys(grouped).sort((a, b) => a.localeCompare(b));
 
-    // Sort internal entries
+    // Sort internal entries by date ascending
     sortedSubjects.forEach(sub => {
         grouped[sub].entries.sort((a, b) => {
             if (a.date === b.date) return 0;
-            const result = a.date > b.date ? 1 : -1;
-            return sortAsc ? result : -result;
+            return a.date > b.date ? 1 : -1;
         });
     });
 
@@ -219,7 +224,7 @@ function render() {
         // Mobile column header row (hidden on desktop)
         const mobileColHeader = document.createElement('tr');
         mobileColHeader.className = 'mobile-col-header hide-desktop';
-        mobileColHeader.innerHTML = `<td>Date</td><td>Status</td><td>Action</td>`;
+        mobileColHeader.innerHTML = `<td>Date</td><td>Subtopic</td><td>Status</td><td>Action</td>`;
         tbody.appendChild(mobileColHeader);
 
         entries.forEach((record, index) => {
@@ -241,6 +246,14 @@ function render() {
                 subjectTd.classList.add('hide-mobile');
             } else {
                 subjectTd.classList.add('hide-desktop', 'hide-mobile');
+            }
+
+            // Subtopic Column
+            const subtopicTd = document.createElement('td');
+            subtopicTd.setAttribute('data-label', 'Subtopic');
+            subtopicTd.textContent = record.subtopic || '-';
+            if(!record.subtopic) {
+                subtopicTd.style.color = 'var(--text-muted)';
             }
 
             // Status Column
@@ -271,6 +284,7 @@ function render() {
 
             tr.appendChild(dateTd);
             tr.appendChild(subjectTd);
+            tr.appendChild(subtopicTd);
             tr.appendChild(statusTd);
             tr.appendChild(actionTd);
 
@@ -282,14 +296,10 @@ function render() {
 }
 
 // Event Listeners for controls
-filterSelect.addEventListener('change', (e) => {
-    currentFilter = e.target.value;
-    render();
-});
-
-sortBtn.addEventListener('click', () => {
-    sortAsc = !sortAsc;
-    sortBtn.innerHTML = `Sort by Date ${sortAsc ? '&uarr;' : '&darr;'}`;
+toggleTodayBtn.addEventListener('click', () => {
+    showOnlyToday = !showOnlyToday;
+    toggleTodayBtn.textContent = showOnlyToday ? "Show All Tasks" : "Show Today's Tasks";
+    toggleTodayBtn.classList.toggle('active-filter', showOnlyToday);
     render();
 });
 
